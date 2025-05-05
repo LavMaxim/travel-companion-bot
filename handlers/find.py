@@ -8,6 +8,8 @@ from database import (
     get_trips_by_location_keyword,
     get_random_trips
 )
+from keyboards.trip import get_trip_keyboard
+
 
 router = Router()
 
@@ -67,7 +69,12 @@ async def filter_by_date(callback: CallbackQuery):
         return
     await callback.message.edit_text(f"📅 Поездки по фильтру <b>{category}</b>:", parse_mode="HTML")
     for trip in trips[:3]:
-        await callback.message.answer(format_trip_card(trip), parse_mode="HTML")
+        rowid, user_id, username, *_ = trip
+        await callback.message.answer(
+            format_trip_card(trip),
+            parse_mode="HTML",
+            reply_markup=get_trip_keyboard(user_id, rowid, username)
+)
 
 
 # 🔎 Поиск по цели
@@ -90,8 +97,12 @@ async def filter_by_purpose(callback: CallbackQuery):
         return
     await callback.message.edit_text(f"🎯 Цель: <b>{purpose}</b>", parse_mode="HTML")
     for trip in trips[:3]:
-        await callback.message.answer(format_trip_card(trip), parse_mode="HTML")
-
+        rowid, user_id, username, *_ = trip
+        await callback.message.answer(
+            format_trip_card(trip),
+            parse_mode="HTML",
+            reply_markup=get_trip_keyboard(user_id, rowid, username)
+)
 
 # 🔎 Поиск по попутчикам
 @router.callback_query(F.data == "filter:companions")
@@ -113,8 +124,12 @@ async def filter_by_companions(callback: CallbackQuery):
         return
     await callback.message.edit_text(f"🧍 Попутчики: <b>{value}</b>", parse_mode="HTML")
     for trip in trips[:3]:
-        await callback.message.answer(format_trip_card(trip), parse_mode="HTML")
-
+        rowid, user_id, username, *_ = trip
+        await callback.message.answer(
+            format_trip_card(trip),
+            parse_mode="HTML",
+            reply_markup=get_trip_keyboard(user_id, rowid, username)
+        )
 
 # 🔎 Поиск по направлению
 @router.callback_query(F.data == "filter:location")
@@ -141,7 +156,13 @@ async def filter_by_location(callback: CallbackQuery):
         return
     await callback.message.edit_text(f"🌍 Направление: <b>{location}</b>", parse_mode="HTML")
     for trip in trips[:3]:
-        await callback.message.answer(format_trip_card(trip), parse_mode="HTML")
+        rowid, user_id, username, *_ = trip
+        await callback.message.answer(
+            format_trip_card(trip),
+            parse_mode="HTML",
+            reply_markup=get_trip_keyboard(user_id, rowid, username)
+)
+
 
 @router.message(F.text.startswith("!"))
 async def find_by_location(message: Message):
@@ -152,8 +173,12 @@ async def find_by_location(message: Message):
         return
     await message.answer(f"🌍 Направление: <b>{query}</b>", parse_mode="HTML")
     for trip in trips[:3]:
-        await message.answer(format_trip_card(trip), parse_mode="HTML")
-
+        rowid, user_id, username, *_ = trip
+        await message.answer(
+            format_trip_card(trip),
+            parse_mode="HTML",
+            reply_markup=get_trip_keyboard(user_id, rowid, username)
+        )
 
 # 🔎 Случайные поездки
 @router.callback_query(F.data == "filter:random")
@@ -164,8 +189,12 @@ async def show_random_trips(callback: CallbackQuery):
         return
     await callback.message.edit_text("🎲 Вот несколько случайных поездок:")
     for trip in trips:
-        await callback.message.answer(format_trip_card(trip), parse_mode="HTML")
-
+        rowid, user_id, username, *_ = trip
+        await callback.message.answer(
+            format_trip_card(trip),
+            parse_mode="HTML",
+            reply_markup=get_trip_keyboard(user_id, rowid, username)
+        )
 FILTER_KEYS = {
     "date": "Дата",
     "purpose": "Цель",

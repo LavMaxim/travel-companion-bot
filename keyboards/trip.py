@@ -56,3 +56,17 @@ def get_search_filter_keyboard() -> InlineKeyboardMarkup:
         [InlineKeyboardButton(text="🌍 По направлению", callback_data="filter:location")],
         [InlineKeyboardButton(text="🎲 Случайные поездки", callback_data="filter:random")]
     ])
+
+
+def get_trip_keyboard(user_id: int, trip_id: int, username: str = None) -> InlineKeyboardMarkup:
+    buttons = [
+        [InlineKeyboardButton(text="📩 Присоединиться", callback_data=f"join:{user_id}:{trip_id}")]
+    ]
+    if username:
+        buttons.append([
+            InlineKeyboardButton(
+                text="👤 Профиль автора",
+                url=f"https://t.me/{username}"
+            )
+        ])
+    return InlineKeyboardMarkup(inline_keyboard=buttons)
