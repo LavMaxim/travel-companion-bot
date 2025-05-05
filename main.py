@@ -8,7 +8,7 @@ from aiogram.client.default import DefaultBotProperties
 from aiogram.fsm.storage.memory import MemoryStorage
 from logger import logger
 from database import init_db
-from handlers import create_trip, cancel, trips, admin, mytrips, find, locations, join, menu, find_menu, profile
+from handlers import create_trip, cancel, trips, admin, mytrips, find, join, menu, find_menu, profile
 from middlewares.error_handler import ErrorLoggingMiddleware
 from middlewares.user_actions_logger import UserActionLoggerMiddleware
 
@@ -29,7 +29,6 @@ dp.include_router(trips.router)
 dp.include_router(admin.router)
 dp.include_router(mytrips.router)
 dp.include_router(find.router)
-dp.include_router(locations.router)
 dp.include_router(join.router)
 dp.include_router(profile.router)
 
