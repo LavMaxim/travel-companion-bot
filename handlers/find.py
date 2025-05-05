@@ -13,15 +13,24 @@ router = Router()
 
 # 💬 Универсальный формат карточки поездки
 def format_trip_card(trip: tuple) -> str:
-    rowid, user_id, username, location, date_from, date_to, purpose, companions, description = trip
+    (
+        rowid, user_id, username, country, location,
+        date_from, date_to, purpose, companions,
+        description, insert_dttm
+    ) = trip
+    username_display = f"@{username}" if username else "<i>аноним</i>"
     return (
-        f"🌍 <b>Место:</b> {location}\n"
-        f"📅 <b>С:</b> {date_from}\n"
-        f"📅 <b>По:</b> {date_to}\n"
-        f"🎯 <b>Цель:</b> {purpose}\n"
-        f"🧍 <b>Спутники:</b> {companions}\n"
-        f"📝 <b>Описание:</b> {description}"
+        f"👤 <b>Автор:</b> {username_display}\n"
+        f"🌍 <b>Страна:</b> {country or '—'}\n"
+        f"🌍 <b>Место:</b> {location or '—'}\n"
+        f"📅 <b>С:</b> {date_from or '—'}\n"
+        f"📅 <b>По:</b> {date_to or '—'}\n"
+        f"🎯 <b>Цель:</b> {purpose or '—'}\n"
+        f"🧍 <b>Спутники:</b> {companions or '—'}\n"
+        f"📝 <b>Описание:</b> {description or '—'}\n"
+        f"⏱ <b>Добавлено:</b> {insert_dttm or '—'}"
     )
+
 
 
 @router.message(Command("find"))

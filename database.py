@@ -1,5 +1,5 @@
 import sqlite3
-from datetime import date, timedelta
+from datetime import date, timedelta, datetime
 
 # Создание подключения и таблицы
 def init_db():
@@ -7,15 +7,16 @@ def init_db():
     cur = conn.cursor()
     cur.execute("""
         CREATE TABLE IF NOT EXISTS trips (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER,
-            username TEXT,
-            location TEXT,
-            date_from TEXT,
-            date_to TEXT,
-            purpose TEXT,
-            companions TEXT,
-            description TEXT
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER,
+        username TEXT,
+        country TEXT,        
+        location TEXT,
+        date_from TEXT,
+        date_to TEXT,
+        purpose TEXT,
+        companions TEXT,
+        description TEXT
         )
     """)
     conn.commit()
@@ -29,20 +30,27 @@ def get_connection():
 
 # Сохранение поездки
 def save_trip(user_id, username, data: dict):
+    insert_dttm = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     conn = get_connection()
     cur = conn.cursor()
+    print("Сохраняю:", data)
     cur.execute("""
-        INSERT INTO trips (user_id, username, location, date_from, date_to, purpose, companions, description)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO trips (
+            user_id, username, country, location,
+            date_from, date_to, purpose, companions, description, INSERT_DTTM
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """, (
         user_id,
         username,
-        data["location"],
-        data["date_from"],
-        data["date_to"],
-        data["purpose"],
-        data["companions"],
-        data["description"]
+        data.get("country", ""),
+        data.get("location", ""),
+        data.get("date_from", ""),
+        data.get("date_to", ""),
+        data.get("purpose", ""),
+        data.get("companions", ""),
+        data.get("description", ""),
+        insert_dttm
     ))
     conn.commit()
     conn.close()

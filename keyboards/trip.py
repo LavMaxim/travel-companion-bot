@@ -1,4 +1,23 @@
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+from data.locations import locations_by_country
+
+def get_country_keyboard() -> InlineKeyboardMarkup:
+    keyboard = [
+        [InlineKeyboardButton(text=country, callback_data=f"country:{country}")]
+        for country in locations_by_country.keys()
+    ]
+    return InlineKeyboardMarkup(inline_keyboard=keyboard)
+
+def get_city_keyboard(country: str) -> InlineKeyboardMarkup:
+    cities = locations_by_country.get(country, [])
+    keyboard = [
+        [InlineKeyboardButton(text=city, callback_data=f"city:{city}")]
+        for city in cities
+    ]
+    keyboard.append([InlineKeyboardButton(text="🔙 Назад", callback_data="back:country")])
+    return InlineKeyboardMarkup(inline_keyboard=keyboard)
+
+
 
 def get_date_keyboard(prefix: str) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[

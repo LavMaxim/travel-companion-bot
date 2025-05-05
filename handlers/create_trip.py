@@ -12,27 +12,38 @@ from texts.trip import (
 )
 from datetime import datetime, timedelta
 import re
+from keyboards.trip import get_country_keyboard
+from aiogram.types import CallbackQuery
+from aiogram.fsm.context import FSMContext
+from aiogram import F
+from keyboards.trip import get_city_keyboard
 
 router = Router()
 
 # 👉 Эту функцию можно вызывать из других файлов
 async def start_trip_creation(message: Message, state: FSMContext):
-    await message.answer(location_hint)
-    await state.set_state(FSMTrip.location)
+    await state.set_state(FSMTrip.country)
+    await message.answer("🌍 Введите страну, в которую хотели бы поехать:", reply_markup=get_country_keyboard())
 
-@router.message(Command("create"))
-async def command_create(message: Message, state: FSMContext):
-    await start_trip_creation(message, state)
 
-@router.message(FSMTrip.location)
-async def set_location(message: Message, state: FSMContext):
-    text = message.text.strip()
-    if not re.fullmatch(r"[А-Яа-яЁё\s\-]{2,50}", text):
-        await message.answer(location_hint)
-        return
-    await state.update_data(location=text.title())
-    await message.answer(date_from_hint, reply_markup=get_date_keyboard("date_from"))
+@router.callback_query(F.data.startswith("country:"))
+async def handle_country(callback: CallbackQuery, state: FSMContext):
+    country = callback.data.split(":")[1]
+    await state.update_data(country=country)
+    await state.set_state(FSMTrip.city)
+    await callback.message.edit_text(
+        f"🇨🇭 Вы выбрали страну: {country}. Теперь выберите город:",
+        reply_markup=get_city_keyboard(country)
+    )
+
+@router.callback_query(F.data.startswith("city:"))
+async def handle_city(callback: CallbackQuery, state: FSMContext):
+    city = callback.data.split(":")[1]
+    await state.update_data(location=city)
+    await callback.message.edit_text(f"📍 Вы выбрали город: {city}")
+    await callback.message.answer(date_from_hint, reply_markup=get_date_keyboard("date_from"))
     await state.set_state(FSMTrip.date_from)
+
 
 @router.callback_query(F.data.startswith("date_from:"))
 async def handle_date_from(callback: CallbackQuery, state: FSMContext):
@@ -126,6 +137,7 @@ async def set_description(message: Message, state: FSMContext):
 
     summary = (
         f"✅ <b>Поездка создана!</b>\n\n"
+        f"<b>🌍 Страна :</b> {data['country']}\n"
         f"<b>🌍 Место:</b> {data['location']}\n"
         f"<b>📅 С:</b> {data['date_from']}\n"
         f"<b>📅 По:</b> {data['date_to']}\n"
