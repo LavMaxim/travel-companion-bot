@@ -4,6 +4,7 @@ from aiogram.filters import CommandStart, CommandObject
 
 from texts.trip import profile_template, trip_line_template
 from database import get_user_by_id, get_trips_by_user
+from texts.trip import format_trip_card
 
 router = Router()
 

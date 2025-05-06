@@ -3,6 +3,7 @@ from aiogram.types import Message
 from aiogram.fsm.context import FSMContext
 from aiogram.types import ReplyKeyboardRemove
 from aiogram.filters import Command
+from texts.trip import format_trip_card
 
 router = Router()
 

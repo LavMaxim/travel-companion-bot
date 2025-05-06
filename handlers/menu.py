@@ -9,6 +9,7 @@ from keyboards.trip import get_search_filter_keyboard
 from database import is_user_registered
 from handlers.profile import show_profile
 from handlers.register import register_start
+from texts.trip import format_trip_card
 
 router = Router()
 

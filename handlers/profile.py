@@ -12,6 +12,7 @@ from keyboards_main import menu_keyboard
 from states.edit_profile import FSMEditProfile
 from states.delete_profile import FSMDeleteProfile
 from texts.trip import profile_template
+from texts.trip import format_trip_card
 
 router = Router()
 

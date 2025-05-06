@@ -28,3 +28,37 @@ profile_template = """👤 Профиль {first_name} {last_name} (@{username})
 """
 
 trip_line_template = """— {location} ({date_from} — {date_to}): {purpose}, {companions}"""
+
+
+# 💬 Универсальный формат карточки поездки
+def format_trip_card(trip: tuple, author: dict = None, is_own: bool = False) -> str:
+    (
+        rowid, user_id, username, country, location,
+        date_from, date_to, purpose, companions,
+        description, insert_dttm
+    ) = trip
+
+    username_display = f"@{username}" if username else "<i>аноним</i>"
+
+    text = (
+        f"🌍 <b>Страна:</b> {country or '—'}\n"
+        f"🌍 <b>Место:</b> {location or '—'}\n"
+        f"📅 <b>С:</b> {date_from or '—'}\n"
+        f"📅 <b>По:</b> {date_to or '—'}\n"
+        f"🎯 <b>Цель:</b> {purpose or '—'}\n"
+        f"🧍 <b>Спутники:</b> {companions or '—'}\n"
+        f"📝 <b>Описание:</b> {description or '—'}\n"
+        f"⏱️ <b>Добавлено:</b> {insert_dttm or '—'}\n"
+    )
+
+    if not is_own and author:
+        text += "\n"
+        text += f"👤 <b>{author.get('full_name', '—')}</b> "
+        if author.get("username"):
+            text += f"(@{author['username']})\n"
+        text += f"🏙 {author.get('city', '—')}\n"
+        text += f"🚶 {author.get('traveler_type', '—')}\n"
+        text += f"🎯 Интересы: {author.get('interests', '—')}\n"
+        text += f"📝 О себе: {author.get('bio', '—')}"
+
+    return text

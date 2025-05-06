@@ -17,6 +17,7 @@ from aiogram.types import CallbackQuery
 from aiogram.fsm.context import FSMContext
 from aiogram import F
 from keyboards.trip import get_city_keyboard
+from texts.trip import format_trip_card
 
 router = Router()
 

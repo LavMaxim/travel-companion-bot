@@ -1,8 +1,9 @@
 from aiogram import Router, F
 from aiogram.filters import Command
 from aiogram.types import Message, InlineKeyboardButton, InlineKeyboardMarkup, CallbackQuery
-from aiogram.utils.keyboard import InlineKeyboardBuilder
 from database import get_trips_by_user, delete_trip_by_user
+from texts.trip import format_trip_card
+from database import get_user_by_id
 
 router = Router()
 
@@ -15,18 +16,13 @@ async def show_my_trips(message: Message):
         await message.answer("📭 У тебя пока нет созданных поездок.")
         return
 
-    for trip in trips:
-        rowid, location, date_to, date_from, purpose, companions, description = trip
-        text = (
-            f"<b>🚗 Поездка #{rowid}</b>\n"
-            f"<b>🌍 Место:</b> {location}\n"
-            f"<b>📅 С:</b> {date_from}\n"
-            f"<b>📅 По:</b> {date_to}\n"
-            f"<b>🎯 Цель:</b> {purpose}\n"
-            f"<b>🧍 Спутники:</b> {companions}\n"
-            f"<b>📝 Описание:</b> {description}"
-        )
+    author = get_user_by_id(user_id)
 
+    for trip in trips:
+        # trip уже содержит все 11 нужных полей
+        text = format_trip_card(trip, author, is_own=True)
+
+        rowid = trip[0]
         keyboard = InlineKeyboardMarkup(
             inline_keyboard=[
                 [InlineKeyboardButton(text="🗑 Удалить", callback_data=f"delete:{rowid}")]

@@ -159,10 +159,19 @@ def delete_trip(trip_id: int) -> bool:
 def get_trips_by_user(user_id: int):
     conn = get_connection()
     cur = conn.cursor()
-    cur.execute("SELECT rowid, location, date_to, date_from, purpose, companions, description FROM trips WHERE user_id = ?", (user_id,))
+    cur.execute("""
+        SELECT 
+            rowid, user_id, username, country, location,
+            date_from, date_to, purpose, companions,
+            description, INSERT_DTTM
+        FROM trips
+        WHERE user_id = ?
+        ORDER BY INSERT_DTTM DESC
+    """, (user_id,))
     trips = cur.fetchall()
     conn.close()
     return trips
+
 
 #удаление поездки по клиенту и id поездки
 def delete_trip_by_user(trip_id: int, user_id: int) -> bool:
@@ -314,16 +323,23 @@ def get_random_trips(limit=3):
 def get_user_by_id(user_id: int):
     conn = get_connection()
     cursor = conn.cursor()
-    cursor.execute("SELECT id, username, first_name, last_name FROM users WHERE id = ?", (user_id,))
+    cursor.execute("""
+        SELECT telegram_id, username, full_name, city, traveler_type, interests, bio
+        FROM users
+        WHERE telegram_id = ?
+    """, (user_id,))
     row = cursor.fetchone()
     conn.close()
 
     if row:
         return {
-            "id": row[0],
+            "telegram_id": row[0],
             "username": row[1],
-            "first_name": row[2],
-            "last_name": row[3]
+            "full_name": row[2],
+            "city": row[3],
+            "traveler_type": row[4],
+            "interests": row[5],
+            "bio": row[6]
         }
     return None
 

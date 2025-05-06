@@ -4,6 +4,7 @@ from aiogram.fsm.context import FSMContext
 from states.register import FSMRegister
 from database import save_user
 from keyboards_main import menu_keyboard  # импорт вверху файла
+from texts.trip import format_trip_card
 
 router = Router()
 

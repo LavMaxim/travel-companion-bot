@@ -4,6 +4,7 @@ from aiogram.types import Message
 from config import ADMINS
 from database import get_all_trips, delete_trip, delete_trips_by_user
 import re
+from texts.trip import format_trip_card
 
 router = Router()
 

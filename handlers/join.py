@@ -1,6 +1,7 @@
 from aiogram import Router, F, Bot
 from aiogram.types import CallbackQuery
 from aiogram.exceptions import TelegramBadRequest
+from texts.trip import format_trip_card
 
 router = Router()
 
