@@ -22,10 +22,8 @@ from aiogram.types import (
 menu_keyboard = ReplyKeyboardMarkup(
     keyboard=[
         [KeyboardButton(text="➕ Создать поездку")],
-        [
-            KeyboardButton(text="🔎 Поиск"),
-            KeyboardButton(text="🧳 Мои поездки")
-        ]
+        [KeyboardButton(text="🔎 Поиск"), KeyboardButton(text="🧳 Мои поездки")],
+        [KeyboardButton(text="👤 Мой профиль")]  # ✅ должна быть обязательно
     ],
     resize_keyboard=True,
     input_field_placeholder="Выбери действие 👇"

@@ -19,9 +19,55 @@ def init_db():
         description TEXT
         )
     """)
+
+
+    # ✅ Новая таблица пользователей
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            telegram_id INTEGER UNIQUE,
+            username TEXT,
+            full_name TEXT,
+            contact_phone TEXT,
+            city TEXT,
+            traveler_type TEXT,
+            interests TEXT,
+            bio TEXT,
+            is_registered INTEGER DEFAULT 0,
+            created_at TEXT
+        )
+    """)
+
+    # ✅ Обратная связь по удалению
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS deletion_feedback (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            telegram_id INTEGER,
+            username TEXT,
+            reason TEXT,
+            deleted_at TEXT
+        )
+    """)
+
+    #логирование удаленных поездок
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS deleted_trips_log (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            trip_id INTEGER,
+            user_id INTEGER,
+            username TEXT,
+            location TEXT,
+            date_from TEXT,
+            date_to TEXT,
+            purpose TEXT,
+            deleted_at TEXT,
+            deleted_by TEXT
+        )
+    """)
+
+
     conn.commit()
     conn.close()
-
 
 DB_PATH = "trips.db"
 
@@ -56,6 +102,39 @@ def save_trip(user_id, username, data: dict):
     conn.close()
 
 
+def save_user(data: dict):
+    conn = get_connection()
+    cur = conn.cursor()
+
+    cur.execute("""
+        INSERT OR REPLACE INTO users (
+            telegram_id, username, full_name, contact_phone, city,
+            traveler_type, interests, bio, is_registered, created_at
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?)
+    """, (
+        data["telegram_id"],
+        data.get("username"),
+        data.get("full_name"),
+        data.get("contact_phone"),
+        data.get("city"),
+        data.get("traveler_type"),
+        ",".join(data.get("interests", [])),  # interests как строка через запятую
+        data.get("bio"),
+        datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    ))
+
+    conn.commit()
+    conn.close()
+
+def is_user_registered(telegram_id: int) -> bool:
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute("SELECT is_registered FROM users WHERE telegram_id = ?", (telegram_id,))
+    row = cur.fetchone()
+    conn.close()
+    return bool(row and row[0])
+
 #удаление записей по пользователю
 def delete_trips_by_user(user_id: int) -> int:
     conn = get_connection()
@@ -89,11 +168,20 @@ def get_trips_by_user(user_id: int):
 def delete_trip_by_user(trip_id: int, user_id: int) -> bool:
     conn = get_connection()
     cur = conn.cursor()
+
+    cur.execute("SELECT rowid, user_id, username, location, date_to, date_from, purpose FROM trips WHERE rowid = ? AND user_id = ?", (trip_id, user_id))
+    trip = cur.fetchone()
+
+    if trip:
+        log_deleted_trip(trip, "manual")
+
     cur.execute("DELETE FROM trips WHERE rowid = ? AND user_id = ?", (trip_id, user_id))
     deleted = cur.rowcount
+
     conn.commit()
     conn.close()
     return deleted > 0
+
 
 
 #функция поиска направлений
@@ -238,3 +326,99 @@ def get_user_by_id(user_id: int):
             "last_name": row[3]
         }
     return None
+
+
+def get_user_profile(telegram_id: int):
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute("""
+        SELECT full_name, city, traveler_type, interests, bio
+        FROM users
+        WHERE telegram_id = ?
+    """, (telegram_id,))
+    row = cur.fetchone()
+    conn.close()
+
+    if row:
+        return {
+            "full_name": row[0],
+            "city": row[1],
+            "traveler_type": row[2],
+            "interests": row[3],
+            "bio": row[4]
+        }
+    return None
+
+
+def update_user_field(telegram_id: int, field: str, value: str):
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute(f"UPDATE users SET {field} = ? WHERE telegram_id = ?", (value, telegram_id))
+    conn.commit()
+    conn.close()
+
+
+def delete_user_and_trips(telegram_id: int):
+    conn = get_connection()
+    cur = conn.cursor()
+
+    # Логируем все поездки перед удалением
+    cur.execute("""
+        SELECT rowid, user_id, username, location, date_to, date_from, purpose
+        FROM trips
+        WHERE user_id = ?
+    """, (telegram_id,))
+    trips = cur.fetchall()
+
+    for trip in trips:
+        log_deleted_trip(trip, "profile_deleted")
+
+    # Удаляем поездки и пользователя
+    cur.execute("DELETE FROM trips WHERE user_id = ?", (telegram_id,))
+    cur.execute("DELETE FROM users WHERE telegram_id = ?", (telegram_id,))
+
+    conn.commit()
+    conn.close()
+
+
+
+def save_deletion_feedback(telegram_id: int, username: str, reason: str):
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute("""
+        INSERT INTO deletion_feedback (telegram_id, username, reason, deleted_at)
+        VALUES (?, ?, ?, ?)
+    """, (
+        telegram_id,
+        username,
+        reason,
+        datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    ))
+    conn.commit()
+    conn.close()
+
+#логгер удаления поездок
+def log_deleted_trip(trip: tuple, deleted_by: str):
+    conn = get_connection()
+    cur = conn.cursor()
+
+    cur.execute("""
+        INSERT INTO deleted_trips_log (
+            trip_id, user_id, username, location, date_from, date_to, purpose,
+            deleted_at, deleted_by
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    """, (
+        trip[0],         # rowid
+        trip[1],         # user_id
+        trip[2],         # username
+        trip[3],         # location
+        trip[4],         # date_to
+        trip[5],         # date_from
+        trip[6],         # purpose
+        datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        deleted_by
+    ))
+
+    conn.commit()
+    conn.close()
