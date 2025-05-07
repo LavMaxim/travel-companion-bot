@@ -1,54 +1,79 @@
 import asyncio
 import os
-import logging
+
 from dotenv import load_dotenv
 from aiogram import Bot, Dispatcher
 from aiogram.enums import ParseMode
 from aiogram.client.default import DefaultBotProperties
 from aiogram.fsm.storage.memory import MemoryStorage
-from logger import logger
+
 from database import init_db
-from handlers import create_trip, cancel, admin, mytrips, find, join, menu, find_menu, register, profile
+from handlers import (
+    create_trip,
+    cancel,
+    admin,
+    mytrips,
+    find,
+    join,
+    menu,
+    profile,
+    register,
+    fallback
+)
 from middlewares.error_handler import ErrorLoggingMiddleware
 from middlewares.user_actions_logger import UserActionLoggerMiddleware
 
-# Загрузка переменных окружения
-load_dotenv(dotenv_path="O:/Telegrambot/.env")
+from logger import get_logger
+
+logger = get_logger(__name__)
+
+# Подгружаем .env из текущей рабочей директории
+load_dotenv()
 BOT_TOKEN = os.getenv("BOT_TOKEN")
+if not BOT_TOKEN:
+    logger.critical("BOT_TOKEN is not set in environment variables")
+    exit(1)
 
-# Инициализация бота и диспетчера
-bot = Bot(BOT_TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
-storage = MemoryStorage()
-dp = Dispatcher(storage=storage)
 
-# Подключение роутеров
-dp.include_router(menu.router)
-dp.include_router(create_trip.router)
-dp.include_router(cancel.router)
-dp.include_router(admin.router)
-dp.include_router(mytrips.router)
-dp.include_router(find.router)
-dp.include_router(join.router)
-dp.include_router(profile.router)
-dp.include_router(register.router)
-
-# Middleware ошибок
-dp.message.middleware(ErrorLoggingMiddleware())
-dp.callback_query.middleware(ErrorLoggingMiddleware())
-
-#логирование действий
-dp.message.middleware(UserActionLoggerMiddleware())
-dp.callback_query.middleware(UserActionLoggerMiddleware())
-
-# Точка входа
 async def main():
+    # Инициализация БД
+    init_db()
+    logger.info("🧰 База данных инициализирована")
+
+    # Создаём бот и диспетчер
+    bot = Bot(token=BOT_TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
+    dp = Dispatcher(storage=MemoryStorage())
+
+    # Подключаем все роутеры
+    for router in (
+        menu.router,
+        create_trip.router,
+        cancel.router,
+        admin.router,
+        mytrips.router,
+        find.router,
+        join.router,
+        profile.router,
+        register.router,
+        fallback.router,
+    ):
+        dp.include_router(router)
+
+    # Middleware для отлова ошибок и логирования действий
+    dp.message.middleware(ErrorLoggingMiddleware())
+    dp.callback_query.middleware(ErrorLoggingMiddleware())
+
+    # Middleware для логирования действий
+    dp.message.outer_middleware(UserActionLoggerMiddleware())
+    dp.callback_query.outer_middleware(UserActionLoggerMiddleware())
+
+    
+    logger.info("🚀 Старт polling")
     try:
-        init_db()
-        print("🧰 Бот запущен!")
         await dp.start_polling(bot)
-    except Exception as e:
-        logger.exception("❌ Unhandled exception in main loop")
+    except Exception:
+        logger.exception("❌ Необработанное исключение в основном цикле")
+
 
 if __name__ == "__main__":
     asyncio.run(main())
-""

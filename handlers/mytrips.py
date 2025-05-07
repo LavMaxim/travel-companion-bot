@@ -4,7 +4,9 @@ from aiogram.types import Message, InlineKeyboardButton, InlineKeyboardMarkup, C
 from database import get_trips_by_user, delete_trip_by_user
 from texts.trip import format_trip_card
 from database import get_user_by_id
+from logger import get_logger
 
+logger = get_logger(__name__)
 router = Router()
 
 @router.message(Command("mytrips"))

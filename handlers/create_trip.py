@@ -4,34 +4,43 @@ from aiogram.fsm.context import FSMContext
 from aiogram.filters import Command
 from states.trip import FSMTrip
 from database import save_trip
-from keyboards.trip import get_date_keyboard, get_purpose_keyboard, get_companions_keyboard
+from keyboards.trip import (
+    get_country_keyboard, get_city_keyboard,
+    get_date_keyboard, get_purpose_keyboard, get_companions_keyboard
+)
 from texts.trip import (
-    location_hint, date_format_error, date_from_hint, date_to_hint,
-    purpose_hint, purpose_manual_hint, companions_hint, companions_manual_hint,
+    date_from_hint, date_to_hint,
+    purpose_hint, purpose_manual_hint,
+    companions_hint, companions_manual_hint,
     description_hint, description_too_long
 )
+from texts.trip import format_trip_card
 from datetime import datetime, timedelta
 import re
-from keyboards.trip import get_country_keyboard
-from aiogram.types import CallbackQuery
-from aiogram.fsm.context import FSMContext
-from aiogram import F
-from keyboards.trip import get_city_keyboard
-from texts.trip import format_trip_card
+
+from logger import get_logger
+from utils.fsm_logger import set_state_and_log
 
 router = Router()
+logger = get_logger(__name__)
 
-# 👉 Эту функцию можно вызывать из других файлов
+@router.message(Command("create"))
 async def start_trip_creation(message: Message, state: FSMContext):
-    await state.set_state(FSMTrip.country)
-    await message.answer("🌍 Введите страну, в которую хотели бы поехать:", reply_markup=get_country_keyboard())
-
+    user_id = message.from_user.id
+    # Переход в первое состояние
+    await set_state_and_log(state, FSMTrip.country, logger, user_id)
+    await message.answer(
+        "🌍 Введите страну, в которую хотели бы поехать:",
+        reply_markup=get_country_keyboard()
+    )
 
 @router.callback_query(F.data.startswith("country:"))
 async def handle_country(callback: CallbackQuery, state: FSMContext):
+    user_id = callback.from_user.id
     country = callback.data.split(":")[1]
     await state.update_data(country=country)
-    await state.set_state(FSMTrip.city)
+    # Переход к выбору города
+    await set_state_and_log(state, FSMTrip.city, logger, user_id)
     await callback.message.edit_text(
         f"🇨🇭 Вы выбрали страну: {country}. Теперь выберите город:",
         reply_markup=get_city_keyboard(country)
@@ -39,34 +48,53 @@ async def handle_country(callback: CallbackQuery, state: FSMContext):
 
 @router.callback_query(F.data.startswith("city:"))
 async def handle_city(callback: CallbackQuery, state: FSMContext):
+    user_id = callback.from_user.id
     city = callback.data.split(":")[1]
     await state.update_data(location=city)
+    # Переход к дате начала
+    await set_state_and_log(state, FSMTrip.date_from, logger, user_id)
     await callback.message.edit_text(f"📍 Вы выбрали город: {city}")
-    await callback.message.answer(date_from_hint, reply_markup=get_date_keyboard("date_from"))
-    await state.set_state(FSMTrip.date_from)
-
+    await callback.message.answer(
+        date_from_hint,
+        reply_markup=get_date_keyboard("date_from")
+    )
 
 @router.callback_query(F.data.startswith("date_from:"))
 async def handle_date_from(callback: CallbackQuery, state: FSMContext):
+    user_id = callback.from_user.id
     value = callback.data.split(":")[1]
     date = parse_date_shortcut(value)
     await state.update_data(date_from=date)
-    await callback.message.edit_text(f"📅 Дата начала: <b>{date}</b>", parse_mode="HTML")
-    await callback.message.answer(date_to_hint, reply_markup=get_date_keyboard("date_to"))
-    await state.set_state(FSMTrip.date_to)
+    await callback.message.edit_text(
+        f"📅 Дата начала: <b>{date}</b>", parse_mode="HTML"
+    )
+    # Переход к дате окончания
+    await set_state_and_log(state, FSMTrip.date_to, logger, user_id)
+    await callback.message.answer(
+        date_to_hint,
+        reply_markup=get_date_keyboard("date_to")
+    )
 
 @router.callback_query(F.data.startswith("date_to:"))
 async def handle_date_to(callback: CallbackQuery, state: FSMContext):
+    user_id = callback.from_user.id
     value = callback.data.split(":")[1]
     date = parse_date_shortcut(value, to=True)
     await state.update_data(date_to=date)
-    await callback.message.edit_text(f"📅 Дата окончания: <b>{date}</b>", parse_mode="HTML")
-    await callback.message.answer(purpose_hint, reply_markup=get_purpose_keyboard())
-    await state.set_state(FSMTrip.purpose)
+    await callback.message.edit_text(
+        f"📅 Дата окончания: <b>{date}</b>", parse_mode="HTML"
+    )
+    # Переход к выбору цели
+    await set_state_and_log(state, FSMTrip.purpose, logger, user_id)
+    await callback.message.answer(
+        purpose_hint,
+        reply_markup=get_purpose_keyboard()
+    )
 
 @router.message(FSMTrip.date_from)
 @router.message(FSMTrip.date_to)
 async def handle_manual_date(message: Message, state: FSMContext):
+    # Парсим ручной ввод дат
     text = message.text.strip()
     try:
         datetime.strptime(text, "%d.%m.%Y")
@@ -75,50 +103,63 @@ async def handle_manual_date(message: Message, state: FSMContext):
         return
 
     current = await state.get_state()
+    user_id = message.from_user.id
     if current == FSMTrip.date_from.state:
         await state.update_data(date_from=text)
-        await message.answer(date_to_hint, reply_markup=get_date_keyboard("to"))
-        await state.set_state(FSMTrip.date_to)
+        # Переход к дате окончания
+        await set_state_and_log(state, FSMTrip.date_to, logger, user_id)
+        await message.answer(
+            date_to_hint, reply_markup=get_date_keyboard("date_to")
+        )
     else:
         await state.update_data(date_to=text)
-        await message.answer(purpose_hint, reply_markup=get_purpose_keyboard())
-        await state.set_state(FSMTrip.purpose)
+        # Переход к выбору цели
+        await set_state_and_log(state, FSMTrip.purpose, logger, user_id)
+        await message.answer(
+            purpose_hint, reply_markup=get_purpose_keyboard()
+        )
 
 @router.callback_query(F.data.startswith("purpose:"))
 async def handle_purpose(callback: CallbackQuery, state: FSMContext):
+    user_id = callback.from_user.id
     value = callback.data.split(":")[1]
     if value == "manual":
         await callback.message.edit_text(purpose_manual_hint)
-        await state.set_state(FSMTrip.purpose)
         return
     await state.update_data(purpose=value)
+    # Переход к выбору попутчиков
+    await set_state_and_log(state, FSMTrip.companions, logger, user_id)
     await callback.message.edit_text(f"🎯 Цель поездки: {value}")
     await callback.message.answer(companions_hint, reply_markup=get_companions_keyboard())
-    await state.set_state(FSMTrip.companions)
 
 @router.message(FSMTrip.purpose)
 async def set_purpose_manual(message: Message, state: FSMContext):
+    user_id = message.from_user.id
     await state.update_data(purpose=message.text)
+    # Переход к выбору попутчиков
+    await set_state_and_log(state, FSMTrip.companions, logger, user_id)
     await message.answer(companions_hint, reply_markup=get_companions_keyboard())
-    await state.set_state(FSMTrip.companions)
 
 @router.callback_query(F.data.startswith("companions:"))
 async def handle_companions(callback: CallbackQuery, state: FSMContext):
+    user_id = callback.from_user.id
     value = callback.data.split(":")[1]
     if value == "manual":
         await callback.message.edit_text(companions_manual_hint)
-        await state.set_state(FSMTrip.companions)
         return
     await state.update_data(companions=value)
+    # Переход к описанию
+    await set_state_and_log(state, FSMTrip.description, logger, user_id)
     await callback.message.edit_text(f"🧍 Попутчики: {value}")
-    await callback.message.answer(description_hint, parse_mode="HTML")
-    await state.set_state(FSMTrip.description)
+    await callback.message.answer(description_hint)
 
 @router.message(FSMTrip.companions)
 async def set_companions_manual(message: Message, state: FSMContext):
+    user_id = message.from_user.id
     await state.update_data(companions=message.text)
-    await message.answer(description_hint, parse_mode="HTML")
-    await state.set_state(FSMTrip.description)
+    # Переход к описанию
+    await set_state_and_log(state, FSMTrip.description, logger, user_id)
+    await message.answer(description_hint)
 
 @router.message(FSMTrip.description)
 async def set_description(message: Message, state: FSMContext):
@@ -127,27 +168,24 @@ async def set_description(message: Message, state: FSMContext):
         await message.answer(description_too_long)
         return
 
+    user_id = message.from_user.id
     await state.update_data(description=text)
     data = await state.get_data()
 
     save_trip(
-        user_id=message.from_user.id,
+        user_id=user_id,
         username=message.from_user.username,
         data=data
     )
 
-    summary = (
-        f"✅ <b>Поездка создана!</b>\n\n"
-        f"<b>🌍 Страна :</b> {data['country']}\n"
-        f"<b>🌍 Место:</b> {data['location']}\n"
-        f"<b>📅 С:</b> {data['date_from']}\n"
-        f"<b>📅 По:</b> {data['date_to']}\n"
-        f"<b>🎯 Цель:</b> {data['purpose']}\n"
-        f"<b>🧍 Попутчики:</b> {data['companions']}\n"
-        f"<b>📝 Описание:</b> {data['description']}"
-    )
-    await message.answer(summary, parse_mode="HTML")
+    card = format_trip_card(data)
+    await message.answer(card, parse_mode="HTML")
+
+    # Завершаем FSM
+    old = await state.get_state()
     await state.clear()
+    logger.info("FSM ▶ %s → %s for user %s", old, None, user_id)
+
 
 def parse_date_shortcut(code: str, to=False) -> str:
     now = datetime.now()

@@ -14,7 +14,9 @@ from texts.trip import format_trip_card
 from texts.trip import format_trip_card
 from database import get_user_by_id
 from keyboards.trip import get_trip_keyboard
+from logger import get_logger
 
+logger = get_logger(__name__)
 router = Router()
 
 @router.message(Command("find"))

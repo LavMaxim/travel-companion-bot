@@ -13,7 +13,9 @@ from states.edit_profile import FSMEditProfile
 from states.delete_profile import FSMDeleteProfile
 from texts.trip import profile_template
 from texts.trip import format_trip_card
+from logger import get_logger
 
+logger = get_logger(__name__)
 router = Router()
 
 

@@ -10,7 +10,10 @@ from database import is_user_registered
 from handlers.profile import show_profile
 from handlers.register import register_start
 from texts.trip import format_trip_card
+from aiogram import Router, types
+from logger import get_logger
 
+logger = get_logger(__name__)
 router = Router()
 
 @router.message(Command("start"))

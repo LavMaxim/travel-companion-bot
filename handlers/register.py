@@ -5,7 +5,9 @@ from states.register import FSMRegister
 from database import save_user
 from keyboards_main import menu_keyboard  # импорт вверху файла
 from texts.trip import format_trip_card
+from logger import get_logger
 
+logger = get_logger(__name__)
 router = Router()
 
 
