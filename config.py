@@ -5,4 +5,4 @@ load_dotenv()
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 
 
-ADMINS = [342420161]  # ← замени на свой ID
+ADMINS = [342420161]  # ← мой ID

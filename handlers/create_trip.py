@@ -3,7 +3,7 @@ from aiogram.types import Message, CallbackQuery
 from aiogram.fsm.context import FSMContext
 from aiogram.filters import Command
 from states.trip import FSMTrip
-from database import save_trip
+from database import save_trip, get_trip_by_id
 from keyboards.trip import (
     get_country_keyboard, get_city_keyboard,
     get_date_keyboard, get_purpose_keyboard, get_companions_keyboard
@@ -163,29 +163,39 @@ async def set_companions_manual(message: Message, state: FSMContext):
 
 @router.message(FSMTrip.description)
 async def set_description(message: Message, state: FSMContext):
+    # 1) Валидация длины описания
     text = message.text.strip()
     if len(text) > 300:
-        await message.answer(description_too_long)
+        await message.answer("❗️ Описание слишком длинное (максимум 300 символов).")
         return
 
     user_id = message.from_user.id
+
+    # 2) Обновляем FSM-данные
     await state.update_data(description=text)
     data = await state.get_data()
 
-    save_trip(
+    # 3) Сохраняем в БД и получаем rowid
+    rowid = save_trip(
         user_id=user_id,
         username=message.from_user.username,
         data=data
     )
 
-    card = format_trip_card(data)
-    await message.answer(card, parse_mode="HTML")
+    # 4) Читаем только что созданную запись
+    trip = get_trip_by_id(rowid)  # кортеж из 11 полей
 
-    # Завершаем FSM
-    old = await state.get_state()
+    # 5) Формируем карточку и отправляем вместе с подтверждением
+    card = format_trip_card(trip)
+    await message.answer(
+        f"✅ <b>Поездка создана!</b>\n\n{card}",
+        parse_mode="HTML"
+    )
+
+    # 6) Завершаем FSM
+    old_state = await state.get_state()
     await state.clear()
-    logger.info("FSM ▶ %s → %s for user %s", old, None, user_id)
-
+    logger.info("FSM ▶ %s → %s for user %s", old_state, None, user_id)
 
 def parse_date_shortcut(code: str, to=False) -> str:
     now = datetime.now()

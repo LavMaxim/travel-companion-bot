@@ -12,6 +12,7 @@ from handlers.register import register_start
 from texts.trip import format_trip_card
 from aiogram import Router, types
 from logger import get_logger
+from handlers.help import cmd_help
 
 logger = get_logger(__name__)
 router = Router()
@@ -54,3 +55,7 @@ async def handle_profile(message: Message, state: FSMContext):
         await register_start(message, state)  # 👉 сразу уводим в регистрацию
         return
     await show_profile(message)
+
+@router.message(F.text == "🆘 Помощь")
+async def goto_help(message: Message, state: FSMContext):
+    await cmd_help(message)

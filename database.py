@@ -75,15 +75,14 @@ def get_connection():
     return sqlite3.connect(DB_PATH)
 
 # Сохранение поездки
-def save_trip(user_id, username, data: dict):
+def save_trip(user_id, username, data: dict) -> int:
     insert_dttm = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     conn = get_connection()
     cur = conn.cursor()
-    print("Сохраняю:", data)
     cur.execute("""
         INSERT INTO trips (
             user_id, username, country, location,
-            date_from, date_to, purpose, companions, description, INSERT_DTTM
+            date_from, date_to, purpose, companions, description, insert_dttm
         )
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """, (
@@ -98,8 +97,11 @@ def save_trip(user_id, username, data: dict):
         data.get("description", ""),
         insert_dttm
     ))
+    # получить последний insert_id
+    rowid = cur.lastrowid
     conn.commit()
     conn.close()
+    return rowid
 
 
 def save_user(data: dict):
@@ -438,3 +440,24 @@ def log_deleted_trip(trip: tuple, deleted_by: str):
 
     conn.commit()
     conn.close()
+
+def get_trip_by_id(rowid: int):
+    """
+    Возвращает кортеж из 11 полей для заданного rowid:
+    (rowid, user_id, username, country, location,
+     date_from, date_to, purpose, companions,
+     description, insert_dttm)
+    """
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute("""
+        SELECT
+            rowid, user_id, username, country, location,
+            date_from, date_to, purpose, companions,
+            description, insert_dttm
+        FROM trips
+        WHERE rowid = ?
+    """, (rowid,))
+    trip = cur.fetchone()
+    conn.close()
+    return trip

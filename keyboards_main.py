@@ -23,8 +23,10 @@ menu_keyboard = ReplyKeyboardMarkup(
     keyboard=[
         [KeyboardButton(text="➕ Создать поездку")],
         [KeyboardButton(text="🔎 Поиск"), KeyboardButton(text="🧳 Мои поездки")],
-        [KeyboardButton(text="👤 Мой профиль")]  # ✅ должна быть обязательно
+        [KeyboardButton(text="👤 Мой профиль")],  # ← добавили запятую в конце списка
+        [KeyboardButton(text="🆘 Помощь")],      # ← теперь это отдельный вложенный список
     ],
     resize_keyboard=True,
     input_field_placeholder="Выбери действие 👇"
 )
+

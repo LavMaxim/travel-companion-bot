@@ -18,7 +18,8 @@ from handlers import (
     menu,
     profile,
     register,
-    fallback
+    fallback,
+    help
 )
 from middlewares.error_handler import ErrorLoggingMiddleware
 from middlewares.user_actions_logger import UserActionLoggerMiddleware
@@ -55,6 +56,12 @@ async def main():
         join.router,
         profile.router,
         register.router,
+        help.router,
+    ):
+        dp.include_router(router)
+
+    # отдельно подключаем отбивку для неизвестных команд
+    for router in (
         fallback.router,
     ):
         dp.include_router(router)

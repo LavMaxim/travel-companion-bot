@@ -31,13 +31,29 @@ trip_line_template = """— {location} ({date_from} — {date_to}): {purpose}, {
 
 
 # 💬 Универсальный формат карточки поездки
-def format_trip_card(trip: tuple, author: dict = None, is_own: bool = False) -> str:
-    (
-        rowid, user_id, username, country, location,
-        date_from, date_to, purpose, companions,
-        description, insert_dttm
-    ) = trip
+def format_trip_card(trip, author: dict=None, is_own: bool=False) -> str:
+    if isinstance(trip, dict):
+        # trip — это dict из create_trip, раскладываем по ключам
+        rowid       = trip.get("rowid")       # если у вас есть ID
+        user_id     = trip.get("user_id")
+        username    = trip.get("username")
+        country     = trip.get("country")
+        location    = trip.get("location")
+        date_from   = trip.get("date_from")
+        date_to     = trip.get("date_to")
+        purpose     = trip.get("purpose")
+        companions  = trip.get("companions")
+        description = trip.get("description")
+        insert_dttm = trip.get("insert_dttm", "")  # или datetime.now()
+    else:
+        # старый вариант — кортеж
+        (
+            rowid, user_id, username, country, location,
+            date_from, date_to, purpose, companions,
+            description, insert_dttm
+        ) = trip
 
+    # далее общий код сборки текста…
     username_display = f"@{username}" if username else "<i>аноним</i>"
 
     text = (
