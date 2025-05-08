@@ -1,8 +1,9 @@
-from aiogram.fsm.state import State, StatesGroup
+from aiogram.fsm.state import StatesGroup, State
 
 class FSMRegister(StatesGroup):
     contact = State()
-    full_name = State()
+    gender = State()
+    birth_year = State()
     city = State()
     traveler_type = State()
     interests = State()

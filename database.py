@@ -121,9 +121,10 @@ def save_user(data: dict):
     cur.execute("""
         INSERT OR REPLACE INTO users (
             telegram_id, username, full_name, contact_phone, city,
-            traveler_type, interests, bio, is_registered, created_at
+            traveler_type, interests, bio, gender, birth_year,
+            is_registered, created_at
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?)
     """, (
         data["telegram_id"],
         data.get("username"),
@@ -131,11 +132,12 @@ def save_user(data: dict):
         data.get("contact_phone"),
         data.get("city"),
         data.get("traveler_type"),
-        ",".join(data.get("interests", [])),  # interests как строка через запятую
+        ",".join(data.get("interests", [])),
         data.get("bio"),
+        data.get("gender"),
+        data.get("birth_year"),
         datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     ))
-
     conn.commit()
     conn.close()
 
@@ -360,7 +362,7 @@ def get_user_profile(telegram_id: int):
     conn = get_connection()
     cur = conn.cursor()
     cur.execute("""
-        SELECT full_name, city, traveler_type, interests, bio
+        SELECT full_name, gender, birth_year, city, traveler_type, interests, bio
         FROM users
         WHERE telegram_id = ?
     """, (telegram_id,))
@@ -370,10 +372,12 @@ def get_user_profile(telegram_id: int):
     if row:
         return {
             "full_name": row[0],
-            "city": row[1],
-            "traveler_type": row[2],
-            "interests": row[3],
-            "bio": row[4]
+            "gender": row[1],
+            "birth_year": row[2],
+            "city": row[3],
+            "traveler_type": row[4],
+            "interests": row[5],
+            "bio": row[6]
         }
     return None
 

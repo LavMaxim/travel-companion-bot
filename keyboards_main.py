@@ -18,6 +18,7 @@ from aiogram.types import (
     SwitchInlineQueryChosenChat,
     WebAppInfo,
 )
+from database import count_unread_notifications
 
 def get_menu_keyboard(user_id: int) -> ReplyKeyboardMarkup:
     unread_count = count_unread_notifications(user_id)
