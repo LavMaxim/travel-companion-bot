@@ -2,6 +2,8 @@ from aiogram import Router, F
 from aiogram.types import Message, ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemove
 from aiogram.filters import CommandStart, CommandObject
 from aiogram.fsm.context import FSMContext
+from aiogram.utils.deep_linking import create_start_link
+
 from database import save_deletion_feedback
 from database import (
     get_user_by_id, get_trips_by_user,
@@ -19,22 +21,6 @@ logger = get_logger(__name__)
 router = Router()
 
 
-# 🔗 /start profile_<id>
-@router.message(CommandStart(deep_link=True))
-async def handle_deep_link_profile(message: Message, command: CommandObject):
-    if command.args and command.args.startswith("profile_"):
-        user_id = command.args.split("_")[1]
-        user_data = get_user_by_id(user_id)
-        if not user_data:
-            await message.answer("Профиль не найден.")
-            return
-
-        trips = get_trips_by_user(user_id)
-        text = profile_template(user_data, trips)
-        await message.answer(text, disable_web_page_preview=True)
-    else:
-        await message.answer("Добро пожаловать в бота!")
-
 
 # 👤 Мой профиль
 @router.message(F.text == "👤 Мой профиль")
@@ -45,13 +31,16 @@ async def show_profile(message: Message):
         await message.answer("❗️Профиль не найден. Пожалуйста, пройди регистрацию через /register.")
         return
 
+    profile_link = await create_start_link(message.bot, f"profile_{message.from_user.id}", encode=True)
+
     text = (
         f"📇 <b>Твой профиль:</b>\n\n"
         f"👤 Имя: {user.get('full_name')}\n"
         f"🏙 Город: {user.get('city')}\n"
         f"🚶 Тип: {user.get('traveler_type')}\n"
         f"🎯 Интересы: {user.get('interests')}\n"
-        f"📝 О себе: {user.get('bio')}\n"
+        f"📝 О себе: {user.get('bio')}\n\n"
+        f"🔗 <b>Ссылка на твой профиль:</b>\n{profile_link}"
     )
 
     kb = ReplyKeyboardMarkup(
@@ -63,7 +52,7 @@ async def show_profile(message: Message):
         resize_keyboard=True
     )
 
-    await message.answer(text, reply_markup=kb)
+    await message.answer(text, reply_markup=kb, disable_web_page_preview=True)
 
 
 # ✏️ Изменение профиля

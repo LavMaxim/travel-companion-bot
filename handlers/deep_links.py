@@ -2,7 +2,7 @@ from aiogram import Router
 from aiogram.types import Message
 from aiogram.filters import CommandStart, CommandObject
 
-from texts.trip import profile_template, trip_line_template
+from texts.trip import render_profile_template
 from database import get_user_by_id, get_trips_by_user
 from texts.trip import format_trip_card
 
@@ -24,6 +24,9 @@ async def show_user_profile(message: Message, user_id: str):
         await message.answer("❌ Пользователь не найден.")
         return
 
+    text = render_profile_template(user, trips)
+    await message.answer(text)
+    
     if trips:
         trips_text = "\n".join(
             [trip_line_template.format(**t) for t in trips]

@@ -64,7 +64,17 @@ def init_db():
             deleted_by TEXT
         )
     """)
-
+    
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS notifications (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            type TEXT NOT NULL,
+            payload TEXT,
+            is_read INTEGER DEFAULT 0,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
 
     conn.commit()
     conn.close()
@@ -461,3 +471,77 @@ def get_trip_by_id(rowid: int):
     trip = cur.fetchone()
     conn.close()
     return trip
+
+
+# Добавим три функции работы с уведомлениями в структуре trips.db
+
+def add_notification(user_id: int, type_: str, payload: str):
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute("""
+        INSERT INTO notifications (user_id, type, payload)
+        VALUES (?, ?, ?)
+    """, (user_id, type_, payload))
+    conn.commit()
+    conn.close()
+
+def get_unread_notifications(user_id: int):
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute("""
+        SELECT id, type, payload, created_at
+        FROM notifications
+        WHERE user_id = ? AND is_read = 0
+        ORDER BY created_at DESC
+    """, (user_id,))
+    notifications = cur.fetchall()
+    conn.close()
+    return notifications
+
+def mark_notification_read(notification_id: int):
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute("""
+        UPDATE notifications
+        SET is_read = 1
+        WHERE id = ?
+    """, (notification_id,))
+    conn.commit()
+    conn.close()
+
+
+#айдишки уведомлений
+def get_all_notifications_by_filter(user_id: int, filter_type: str):
+    conn = get_connection()
+    cur = conn.cursor()
+
+    query = """
+        SELECT id, type, payload, is_read, created_at
+        FROM notifications
+        WHERE user_id = ?
+    """
+    if filter_type in ("new_join", "joined_by_link", "new_follower", "system"):
+        query += " AND type = ?"
+        cur.execute(query + " ORDER BY created_at DESC", (user_id, filter_type))
+    elif filter_type == "read":
+        query += " AND is_read = 1 ORDER BY created_at DESC"
+        cur.execute(query, (user_id,))
+    elif filter_type == "unread":
+        query += " AND is_read = 0 ORDER BY created_at DESC"
+        cur.execute(query, (user_id,))
+    else:
+        query += " ORDER BY created_at DESC"
+        cur.execute(query, (user_id,))
+
+    rows = cur.fetchall()
+    conn.close()
+    return rows
+
+# подсчет количества непрочитанных уведомлений
+def count_unread_notifications(user_id: int) -> int:
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute("SELECT COUNT(*) FROM notifications WHERE user_id = ? AND is_read = 0", (user_id,))
+    count = cur.fetchone()[0]
+    conn.close()
+    return count

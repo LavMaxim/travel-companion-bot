@@ -78,3 +78,32 @@ def format_trip_card(trip, author: dict=None, is_own: bool=False) -> str:
         text += f"📝 О себе: {author.get('bio', '—')}"
 
     return text
+
+
+
+def render_profile_template(user: dict, trips: list) -> str:
+    def trip_to_dict(trip):
+        if isinstance(trip, dict):
+            return trip
+        return {
+            "location": trip[4],
+            "date_from": trip[5],
+            "date_to": trip[6],
+            "purpose": trip[7],
+            "companions": trip[8]
+        }
+
+    if trips:
+        trips_text = "\n".join([
+            trip_line_template.format(**trip_to_dict(trip)) for trip in trips
+        ])
+    else:
+        trips_text = "Нет активных поездок."
+
+    return profile_template.format(
+        first_name=user.get("first_name", ""),
+        last_name=user.get("last_name", ""),
+        username=user.get("username", "без username"),
+        trips=trips_text
+    )
+

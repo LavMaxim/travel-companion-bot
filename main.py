@@ -19,7 +19,8 @@ from handlers import (
     profile,
     register,
     fallback,
-    help
+    help,
+    notifications
 )
 from middlewares.error_handler import ErrorLoggingMiddleware
 from middlewares.user_actions_logger import UserActionLoggerMiddleware
@@ -57,6 +58,7 @@ async def main():
         profile.router,
         register.router,
         help.router,
+        notifications.router
     ):
         dp.include_router(router)
 

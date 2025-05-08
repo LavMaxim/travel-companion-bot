@@ -19,14 +19,17 @@ from aiogram.types import (
     WebAppInfo,
 )
 
-menu_keyboard = ReplyKeyboardMarkup(
-    keyboard=[
-        [KeyboardButton(text="➕ Создать поездку")],
-        [KeyboardButton(text="🔎 Поиск"), KeyboardButton(text="🧳 Мои поездки")],
-        [KeyboardButton(text="👤 Мой профиль")],  # ← добавили запятую в конце списка
-        [KeyboardButton(text="🆘 Помощь")],      # ← теперь это отдельный вложенный список
-    ],
-    resize_keyboard=True,
-    input_field_placeholder="Выбери действие 👇"
-)
+def get_menu_keyboard(user_id: int) -> ReplyKeyboardMarkup:
+    unread_count = count_unread_notifications(user_id)
+    notif_label = f"🔔 Уведомления ({unread_count})" if unread_count > 0 else "🔔 Уведомления"
 
+    return ReplyKeyboardMarkup(
+        keyboard=[
+            [KeyboardButton(text="➕ Создать поездку")],
+            [KeyboardButton(text="🔎 Поиск"), KeyboardButton(text="🧳 Мои поездки")],
+            [KeyboardButton(text="👤 Мой профиль"), KeyboardButton(text=notif_label)],
+            [KeyboardButton(text="🆘 Помощь")],
+        ],
+        resize_keyboard=True,
+        input_field_placeholder="Выбери действие 👇"
+    )
